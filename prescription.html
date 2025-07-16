@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PashuDawai - Your Prescription</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top to prevent content from being cut off */
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+        .prescription-container {
+            max-width: 800px;
+            width: 100%;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            box-sizing: border-box; /* Include padding in width */
+        }
+        .medicine-item {
+            display: flex;
+            align-items: center;
+            background-color: #f8fafc; /* Blue-50 */
+            border: 1px solid #e2e8f0; /* Slate-200 */
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .medicine-item img {
+            width: 64px;
+            height: 64px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-right: 1rem;
+            border: 1px solid #cbd5e1;
+        }
+        .language-switch-btn {
+            background-color: #3b82f6; /* Blue-500 */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .language-switch-btn:hover {
+            background-color: #2563eb; /* Blue-600 */
+        }
+        .message-box { /* Reusing styles for consistent messaging */
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .expired-message {
+            background-color: #fee2e2; /* Red-100 */
+            color: #ef4444; /* Red-500 */
+            border: 1px solid #fca5a5; /* Red-300 */
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        @media (max-width: 640px) {
+            .prescription-container {
+                padding: 1rem;
+            }
+            .medicine-item {
+                flex-direction: column;
+                text-align: center;
+            }
+            .medicine-item img {
+                margin-right: 0;
+                margin-bottom: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingMessage" class="message-box">
+        <svg class="animate-spin h-10 w-10 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="text-lg font-medium text-gray-800 mt-4">Loading prescription...</p>
+    </div>
+
+    <div id="prescriptionContent" class="prescription-container hidden">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">PashuDawai Prescription</h1>
+
+        <div class="bg-blue-50 p-6 rounded-lg mb-8 border border-blue-200">
+            <p class="text-gray-700 text-lg mb-2"><span class="font-semibold">Prescription Date:</span> <span id="prescriptionDate"></span></p>
+            <p class="text-gray-700 text-lg mb-2"><span class="font-semibold">Doctor:</span> <span id="doctorName"></span></p>
+            <p class="text-gray-700 text-lg"><span class="font-semibold">Message:</span> <span id="prescriptionMessage"></span></p>
+        </div>
+
+        <h2 class="text-2xl font-semibold text-green-700 mb-4">Medicines Prescribed</h2>
+        <div id="medicinesList" class="space-y-4">
+            <!-- Medicines will be loaded here by JavaScript -->
+        </div>
+
+        <div class="mt-8 text-center text-gray-500 text-sm">
+            <p>This prescription link is temporary and will expire after 10 days to protect your privacy.</p>
+            <p>For any queries, please contact your veterinarian.</p>
+        </div>
+    </div>
+
+    <div id="errorMessage" class="expired-message hidden">
+        <p id="errorMessageText"></p>
+        <p class="mt-2 text-base">Please contact your veterinarian for a new prescription.</p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const shortId = urlParams.get('id'); // Get the short ID from the URL
+
+            const loadingMessageDiv = document.getElementById('loadingMessage');
+            const prescriptionContentDiv = document.getElementById('prescriptionContent');
+            const errorMessageDiv = document.getElementById('errorMessage');
+            const errorMessageText = document.getElementById('errorMessageText');
+            const prescriptionDateSpan = document.getElementById('prescriptionDate');
+            const doctorNameSpan = document.getElementById('doctorName');
+            const prescriptionMessageSpan = document.getElementById('prescriptionMessage');
+            const medicinesListDiv = document.getElementById('medicinesList');
+
+            if (!shortId) {
+                loadingMessageDiv.classList.add('hidden');
+                errorMessageDiv.classList.remove('hidden');
+                errorMessageText.textContent = "Invalid prescription link. ID is missing.";
+                return;
+            }
+
+            try {
+                // Call your Vercel serverless function to get the prescription data
+                const response = await fetch(`/api/get-prescription?id=${shortId}`);
+                const prescriptionData = await response.json();
+
+                loadingMessageDiv.classList.add('hidden'); // Hide loading message
+
+                if (response.ok) {
+                    const { doctorName, message, medicines, timestamp } = prescriptionData;
+
+                    prescriptionContentDiv.classList.remove('hidden'); // Show content
+
+                    const prescriptionDateTime = new Date(timestamp);
+                    prescriptionDateSpan.textContent = prescriptionDateTime.toLocaleDateString('en-IN', {
+                        year: 'numeric', month: 'long', day: 'numeric'
+                    });
+                    doctorNameSpan.textContent = doctorName || 'Not provided';
+                    prescriptionMessageSpan.textContent = message || 'No specific message provided.';
+
+                    if (medicines.length === 0) {
+                        medicinesListDiv.innerHTML = '<p class="text-gray-600 text-center">No medicines listed in this prescription.</p>';
+                    } else {
+                        medicines.forEach(med => {
+                            const medicineItemDiv = document.createElement('div');
+                            medicineItemDiv.className = 'medicine-item';
+
+                            medicineItemDiv.innerHTML = `
+                                <img src="${med.imageUrl}" alt="${med.name}" class="w-16 h-16 object-cover rounded-md">
+                                <div class="flex-grow">
+                                    <h3 class="text-xl font-semibold text-gray-800">${med.name}</h3>
+                                    <p class="text-md text-gray-700 mt-1"><span class="font-medium">Dosage:</span> ${med.dosage || 'Not specified'}</p>
+                                    <p class="text-sm text-gray-600 mt-1">${med.type} - ${med.amount} | For: ${med.whenToUse}</p>
+                                    <div class="mt-2">
+                                        <button class="language-switch-btn text-sm" data-lang="en" data-med-id="${med.id}">English Description</button>
+                                        <button class="language-switch-btn text-sm ml-2" data-lang="hi" data-med-id="${med.id}">हिंदी विवरण</button>
+                                        <p class="medicine-description text-gray-700 mt-2 text-sm" id="desc-${med.id}">${med.descriptionEn}</p>
+                                    </div>
+                                </div>
+                            `;
+                            medicinesListDiv.appendChild(medicineItemDiv);
+                        });
+
+                        // Add event listeners for language switch buttons
+                        medicinesListDiv.querySelectorAll('.language-switch-btn').forEach(button => {
+                            button.addEventListener('click', (e) => {
+                                const lang = e.target.dataset.lang;
+                                const medId = e.target.dataset.medId;
+                                const medicineData = medicines.find(m => m.id === medId);
+                                const descriptionP = document.getElementById(`desc-${medId}`);
+
+                                if (medicineData) {
+                                    descriptionP.textContent = lang === 'en' ? medicineData.descriptionEn : medicineData.descriptionHi;
+                                }
+                            });
+                        });
+                    }
+                } else {
+                    // Handle errors from the backend (e.g., prescription not found or expired)
+                    errorMessageDiv.classList.remove('hidden');
+                    errorMessageText.textContent = prescriptionData.error || 'Failed to load prescription.';
+                }
+
+            } catch (error) {
+                console.error("Error fetching prescription data:", error);
+                loadingMessageDiv.classList.add('hidden');
+                errorMessageDiv.classList.remove('hidden');
+                errorMessageText.textContent = `An error occurred: ${error.message}. Please try again later.`;
+            }
+        });
+    </script>
+</body>
+</html>
