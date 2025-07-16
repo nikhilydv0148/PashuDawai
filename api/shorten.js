@@ -2,20 +2,30 @@
 // This Vercel Serverless Function creates a short ID, stores prescription data in Supabase,
 // and returns the short URL for the frontend.
 
-const { createClient } = require('@supabase/supabase-js');
-const { nanoid } = require('nanoid'); // Used for generating short, unique IDs
+import { createClient } from '@supabase/supabase-js';
+import { nanoid } from 'nanoid';
 
 // Initialize Supabase client
-// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY should be set as environment variables in Vercel
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   // Ensure only POST requests are handled
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
-    return res.status(405).send('Method Not Allowed');
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
@@ -47,7 +57,8 @@ module.exports = async (req, res) => {
     // Insert data into the 'prescriptions' table
     const { data, error } = await supabase
       .from('prescriptions')
-      .insert([dataToInsert]);
+      .insert([dataToInsert])
+      .select();
 
     if (error) {
       console.error('Supabase insert error:', error);
@@ -55,9 +66,9 @@ module.exports = async (req, res) => {
     }
 
     // Construct the full short URL to be returned to the frontend
-    // This URL will point to your Vercel frontend, which then calls get-prescription.js
-    const vercelAppUrl = `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}`;
-    const shortUrl = `${vercelAppUrl}/prescription.html?id=${shortId}`;
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers.host;
+    const shortUrl = `${protocol}://${host}/prescription.html?id=${shortId}`;
 
     res.status(200).json({ shortUrl });
 
@@ -65,4 +76,4 @@ module.exports = async (req, res) => {
     console.error('Error in shorten.js:', error);
     res.status(500).json({ error: 'An unexpected error occurred.' });
   }
-};
+}
