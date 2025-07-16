@@ -2,21 +2,16 @@
   "name": "pashudawai-app",
   "version": "1.0.0",
   "description": "Animal Doctor Medicine Sender App with Supabase Backend",
-  "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "vercel dev",
-    "dev": "vercel dev",
-    "build": "echo 'Build complete'"
+    "build": "mkdir public && cp index.html public/ && cp prescription.html public/"
   },
-  "keywords": ["veterinary", "prescription", "whatsapp", "supabase"],
+  "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@supabase/supabase-js": "^2.44.3", 
+    "@supabase/supabase-js": "^2.44.3",
     "nanoid": "^3.3.7"
-  },
-  "engines": {
-    "node": ">=18"
   }
 }
